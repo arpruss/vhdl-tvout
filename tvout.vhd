@@ -56,9 +56,10 @@ begin
     variable ntscPixelcountAdj : unsigned(ntscPixelcount'length-1 downto 0);
     variable visible : boolean;
     begin
+        -- todo: first signal of new line is wrong
         if ntscHPixelcount = usToClock(63.5/2.0) then
             ntscHPixelcountN <= to_unsigned(0,ntscHPixelcountN'length);
-            if ntscHLinecount = 524 then -- hmm, should be 525, but doesn't work with that?!! TODO
+            if ntscHLinecount = 524 then
                 fieldN <= not field; 
                 ntscHLinecountN <= to_unsigned(0,ntscHlinecountN'length);
                 if field = '0' then
@@ -101,13 +102,13 @@ begin
         end if;
 
         if visible then
-            if ntscPixelCount < usToClock(1.5) then
+            if ntscPixelCount >= usToClock(63.5-1.5) then
                 ntscSignal <= '1';
                 ntscLevel <= '0';
-            elsif ntscPixelCount < usToClock(1.5+4.7) then 
+            elsif ntscPixelCount < usToClock(4.7) then 
                 ntscSignal <= '0';
                 ntscLevel <= '0';
-            elsif ntscPixelCount < usToClock(1.5+4.7+4.7) then
+            elsif ntscPixelCount < usToClock(6.2+4.7) then
                 ntscSignal <= '1';
                 ntscLevel <= '0';
             elsif ntscHLinecount < 40 then
