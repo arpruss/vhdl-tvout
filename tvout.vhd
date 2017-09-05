@@ -1,148 +1,147 @@
---
--- Copyright (c) 2003 James Bowman
--- MIT License
---
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.all;
+USE ieee.std_logic_unsigned.all;
+use IEEE.numeric_std.all;
 
-...
+-- line frequency 31468.5
+-- 318 pixels per line
+-- 10.00 MHz pixel frequency 
+-- resolution: 238x223; pixel size 1:1.25
+-- vertical: 33-255 visible
+-- horizontal: 58-295 visible
 
-signal ntscLinecount : std_logic_vector(8 downto 0);
-signal ntscLinecountN : std_logic_vector(8 downto 0);
-signal ntscHPixelcount : std_logic_vector(11 downto 0);
-signal ntscHPixelcountN : std_logic_vector(11 downto 0);
-signal ntscPixelcount : std_logic_vector(12 downto 0);
-signal ntscPixelcountN : std_logic_vector(12 downto 0);
-signal ntscSignal : std_logic;
-signal ntscLevel, ntscEq, ntscSe, ntscBl, ntscAc : std_logic;
-signal ntscBitmap : std_logic_vector(0 downto 0);
+entity tvout is
+	port
+	(
+	sync_output : out std_logic;
+	bw_output : out std_logic;
+	main_clock : in std_logic
+	);
+end tvout;
 
-signal ntscAddr : std_logic_vector(8 downto 0);
-signal ntscData : std_logic_vector(7 downto 0);
-
-...
-
--- ************************************************************************
---                          NTSC OUT
--- ************************************************************************
-bram0: RAMB4_S1_S8
-      port map (ADDRA => ntscLineCount(4 downto 1) & ntscPixelcount(11 downto 4),
-                ADDRB => ntscAddr,
-                DIA => "0",
-                DIB => ntscData,
-                DOA => ntscBitmap, WEA => '0',
-                WEB => '1',  CLKA => clock, CLKB => hostCLK,
-                RSTA => hostReset, RSTB => hostReset, ENA => '1', ENB => '1');
-
--- Derive all other signals from ntscLinecount, ntscPixelcount and ntscBitmap
-process (ntscLinecount, ntscPixelcount, ntscBitmap(0))
+architecture behavioral of tvout is
+	constant pwmBits : natural := 5;
+	constant pwmLevels : natural := 2**pwmBits;
+	signal frameCount : unsigned(12 downto 0);
+	signal frameCountN : unsigned(frameCount'length-1 downto 0);
+	signal ntscLinecount : unsigned(8 downto 0);
+	signal ntscLinecountN : unsigned(ntscLinecount'length-1 downto 0);
+	signal ntscHPixelcount : unsigned(7+pwmBits downto 0);
+	signal ntscHPixelcountN : unsigned(ntscHPixelcount'length-1 downto 0);
+	signal ntscPixelcount : unsigned(8+pwmBits downto 0);
+	signal ntscPixelcountN : unsigned(ntscPixelcount'length-1 downto 0);
+	signal ntscSignal : std_logic;
+	signal ntscLevel, ntscEq, ntscSe, ntscBl, ntscAc : std_logic;
+	signal clock : std_logic; 
+	constant clockFrequency : real := 160000000.0;
 begin
-  if (hostReset = '1') then
-    ntscHPixelcountN <= "000000000000";
-    ntscPixelcountN <= "0000000000000";
-    ntscLinecountN <= "000000000";
-  else
-    if (ntscHPixelcount = "100111110000") then
-      ntscHPixelcountN <= "000000000000";
-    else
-      ntscHPixelcountN <= ntscHPixelcount + 1;
-    end if;
-    if (ntscPixelcount = "1001111100000") then
-      ntscPixelcountN <= "0000000000000";
-      if (ntscLinecount = "100000111") then
-        ntscLinecountN <= "000000000";
-      else
-        ntscLinecountN <= ntscLinecount + 1;
-      end if;
-    else
-      ntscPixelCountN <= ntscPixelcount + 1;
-      ntscLinecountN <= ntscLinecount;
-    end if;
-  end if;
+	-- ************************************************************************
+	--                          NTSC OUT
+	-- ************************************************************************
 
-  -- ntscEq is the equalization pulse
-  if (ntscHPixelcount < "000010111000") then
-    ntscEq <= '0';
-  else
-    ntscEq <= '1';
-  end if;
+	
+	PLL_INSTANCE: entity work.pll port map(main_clock, clock);
 
-  -- ntscSe is the serration pulse
-  if (ntscHPixelcount < "100010001000") then
-    ntscSe <= '0';
-  else
-    ntscSe <= '1';
-  end if;
+	-- Derive all other signals from ntscLinecount, ntscPixelcount and ntscBitmap
+	process (ntscLinecount, ntscPixelcount, ntscHPixelcount, frameCount)
+	variable ntscPixelcountAdj : unsigned(ntscPixelcount'length-1 downto 0);
+	begin
+		 if (ntscHPixelcount = 159*pwmLevels) then
+			ntscHPixelcountN <= to_unsigned(0,ntscHPixelcountN'length);
+		 else
+			ntscHPixelcountN <= ntscHPixelcount + 1;
+		 end if;
+		 if (ntscPixelcount = 318*pwmLevels) then
+			ntscPixelcountN <= to_unsigned(0,ntscPixelcountN'length);
+			if (ntscLinecount = 263) then
+			  ntscLinecountN <= to_unsigned(0,ntscLinecountN'length);
+			  frameCountN <= frameCount + 1;
+			else
+			  ntscLinecountN <= ntscLinecount + 1;
+			  frameCountN <= frameCount;
+			end if;
+		 else
+			frameCountN <= frameCount;
+			ntscPixelCountN <= ntscPixelcount + 1;
+			ntscLinecountN <= ntscLinecount;
+		 end if;
 
-  -- ntscBl is the blanking pulse
-  if (ntscPixelcount < "0000101111000") then
-    ntscBl <= '0';
-  else
-    ntscBl <= '1';
-  end if;
+	  -- ntscEq is the equalization pulse
+	  if (ntscHPixelcount < 11*pwmLevels + pwmLevels/2) then 
+		 ntscEq <= '0';
+	  else
+		 ntscEq <= '1';
+	  end if;
 
-  -- ntscAc is high when raster is in active (i.e. displayed) part of scan
-  if (("000010101" < ntscLinecount) AND
-      ("0001101101000" < ntscPixelcount) AND
-      (ntscPixelcount < "1001101101000")) then
-    ntscAc <= '1';
-  else
-    ntscAc <= '0';
-  end if;
+	  -- ntscSe is the serration pulse
+	  if (ntscHPixelcount < 136*pwmLevels + pwmLevels/2) then
+		 ntscSe <= '0';
+	  else
+		 ntscSe <= '1';
+	  end if;
 
-  -- logic to generate equalization, serration, and blanking pulses at start of every frame
-  if (ntscLinecount(8 downto 4) = "00000") then
-    case ntscLinecount(3 downto 0) is
-    when X"0" =>
-        ntscSignal <= ntscEq;
-    when X"1" =>
-        ntscSignal <= ntscEq;
-    when X"2" =>
-        ntscSignal <= ntscEq;
-    when X"3" =>
-        ntscSignal <= ntscSe;
-    when X"4" =>
-        ntscSignal <= ntscSe;
-    when X"5" =>
-        ntscSignal <= ntscSe;
-    when X"6" =>
-        ntscSignal <= ntscEq;
-    when X"7" =>
-        ntscSignal <= ntscEq;
-    when X"8" =>
-        ntscSignal <= ntscEq;
-    when others =>
-        ntscSignal <= ntscBl;
-    end case;
-  else
-    ntscSignal <= ntscBl;
-  end if;
+	  -- ntscBl is the blanking pulse
+	  if (ntscPixelcount < 23*pwmLevels + pwmLevels/2) then
+		 ntscBl <= '0';
+	  else
+		 ntscBl <= '1';
+	  end if;
 
-  -- logic to generate ntsc level (i.e. the actual picture) during active part of frame
-  if (ntscLinecount = "0001000XX") then
-    -- white bar across top of screen
-    ntscLevel <= '1';
-  elsif (ntscLinecount = "1XXXXXXXX") then
-    -- black border at bottom of screen
-    ntscLevel <= '0';
-  elsif (ntscLinecount = "0111XXXXX") then
-    -- bitmap in lower part of screen
-    ntscLevel <= ntscBitmap(0);
-  else
-    -- gray scale over rest of screen
-    if (ntscPixelcount(10 downto 7) >= (ntscPixelcount(3 downto 0))) then
-      ntscLevel <= '1';
-    else
-      ntscLevel <= '0';
-    end if;
-  end if;
+	  -- ntscAc is high when raster is in active (i.e. displayed) part of scan
+	  if ((21 < ntscLinecount) AND
+			(54*pwmLevels+pwmLevels/2 < ntscPixelcount) AND
+			(ntscPixelcount < 310*pwmLevels+pwmLevels/2)) then
+		 ntscAc <= '1';
+	  else
+		 ntscAc <= '0';
+	  end if;
 
-end process;
+	  -- logic to generate equalization, serration, and blanking pulses at start of every frame
+	  if (ntscLinecount(8 downto 4) = 0) then
+		 case ntscLinecount(3 downto 0) is
+		 when X"0" =>
+			  ntscSignal <= ntscEq;
+		 when X"1" =>
+			  ntscSignal <= ntscEq;
+		 when X"2" =>
+			  ntscSignal <= ntscEq;
+		 when X"3" =>
+			  ntscSignal <= ntscSe;
+		 when X"4" =>
+			  ntscSignal <= ntscSe;
+		 when X"5" =>
+			  ntscSignal <= ntscSe;
+		 when X"6" =>
+			  ntscSignal <= ntscEq;
+		 when X"7" =>
+			  ntscSignal <= ntscEq;
+		 when X"8" =>
+			  ntscSignal <= ntscEq;
+		 when others =>
+			  ntscSignal <= ntscBl;
+		 end case;
+	  else
+		 ntscSignal <= ntscBl;
+	  end if;
 
-process
-begin
-  wait until clock'event and clock = '1';
-  ntscHPixelcount <= ntscHPixelcountN;
-  ntscPixelcount <= ntscPixelcountN;
-  ntscLinecount <= ntscLinecountN;
-  output_01 <= ntscSignal;             -- sync pulses
-  output_02 <= ntscAc AND ntscLevel;   -- black vs white
-end process;
+	  -- logic to generate ntsc level (i.e. the actual picture) during active part of frame
+		 -- gray scale over rest of screen
+		 ntscPixelcountAdj := ntscPixelcount + (resize(ntscLinecount,12) sll pwmBits) + (frameCount sll 1);
+		 if (ntscPixelcountAdj((6+pwmBits) downto 7) >= ntscPixelcountAdj((pwmBits-1) downto 0)) then
+			ntscLevel <= '1';
+		 else
+			ntscLevel <= '0';
+		 end if;
+	end process;
+
+	process
+	begin
+	  wait until clock'event and clock = '1';
+	  ntscHPixelcount <= ntscHPixelcountN;
+	  frameCount <= frameCountN;
+	  ntscPixelcount <= ntscPixelcountN;
+	  ntscLinecount <= ntscLinecountN;
+	  sync_output <= ntscSignal;             -- sync pulses
+	  bw_output <= ntscAc AND ntscLevel;   -- black vs white
+	end process;
+end behavioral;
