@@ -56,8 +56,7 @@ begin
     variable ntscPixelcountAdj : unsigned(ntscPixelcount'length-1 downto 0);
     variable visible : boolean;
     begin
-        -- todo: first signal of new line is wrong
-        if ntscHPixelcount = usToClock(63.5/2.0) then
+        if ntscHPixelcount = usToClock(63.5/2.0)-1 then
             ntscHPixelcountN <= to_unsigned(0,ntscHPixelcountN'length);
             if ntscHLinecount = 524 then
                 fieldN <= not field; 
@@ -85,7 +84,7 @@ begin
             if ntscHLinecount(0) = '0' then
                 ntscPixelcount := resize(ntscHPixelcount, ntscPixelcount'length);
             else
-                ntscPixelcount := resize(ntscHPixelcount, ntscPixelcount'length) + usToClock(63.5/2.0) + 1;
+                ntscPixelcount := resize(ntscHPixelcount, ntscPixelcount'length) + usToClock(63.5/2.0);
             end if;
         elsif field = '0' and 19 <= ntscHLinecount then
             ntscLinecount := resize(ntscHLinecount - 19, ntscLinecount'length)(9 downto 1) & '1';
@@ -93,7 +92,7 @@ begin
             if ntscHLinecount(0) = '1' then
                 ntscPixelcount := resize(ntscHPixelcount, ntscPixelcount'length);
             else
-                ntscPixelcount := resize(ntscHPixelcount, ntscPixelcount'length) + usToClock(63.5/2.0) + 1;
+                ntscPixelcount := resize(ntscHPixelcount, ntscPixelcount'length) + usToClock(63.5/2.0);
             end if;
         else
             visible := false;
