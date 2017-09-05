@@ -29,8 +29,8 @@ architecture behavioral of tvout is
     signal ntscHLinecountN : unsigned(ntscHLinecount'length-1 downto 0) := to_unsigned(0,ntscHLinecount'length);
     signal ntscHPixelcount : unsigned(7+pwmBits downto 0) := to_unsigned(0,8+pwmBits);
     signal ntscHPixelcountN : unsigned(ntscHPixelcount'length-1 downto 0) := to_unsigned(0,ntscHPixelcount'length);
-    signal field : std_logic := '0';
-    signal fieldN : std_logic := '0';
+    signal field : std_logic := '1';
+    signal fieldN : std_logic := '1';
     signal ntscSignal, ntscLevel : std_logic;
     signal clock : std_logic; 
     constant clockFrequency : real := 160000000.0;
@@ -61,7 +61,7 @@ begin
             if ntscHLinecount = 524 then -- hmm, should be 525, but doesn't work with that?!! TODO
                 fieldN <= not field; 
                 ntscHLinecountN <= to_unsigned(0,ntscHlinecountN'length);
-                if field = '1' then
+                if field = '0' then
                     frameCountN <= frameCount + 1;
                 else
                     frameCountN <= frameCount;
@@ -78,7 +78,7 @@ begin
             frameCountN <= frameCount;
         end if;
         
-        if field = '0' and 18 <= ntscHLinecount then
+        if field = '1' and 18 <= ntscHLinecount then
             ntscLinecount := resize(ntscHLinecount - 18, ntscLinecount'length)(9 downto 1) & '0';
             visible := true;
             if ntscHLinecount(0) = '0' then
@@ -86,8 +86,7 @@ begin
             else
                 ntscPixelcount := resize(ntscHPixelcount, ntscPixelcount'length) + usToClock(63.5/2.0) + 1;
             end if;
-
-        elsif field = '1' and 19 <= ntscHLinecount then
+        elsif field = '0' and 19 <= ntscHLinecount then
             ntscLinecount := resize(ntscHLinecount - 19, ntscLinecount'length)(9 downto 1) & '1';
             visible := true;
             if ntscHLinecount(0) = '1' then
@@ -111,14 +110,14 @@ begin
             elsif ntscPixelCount < usToClock(1.5+4.7+4.7) then
                 ntscSignal <= '1';
                 ntscLevel <= '0';
-            elsif ntscLinecount < 20 then
+            elsif ntscHLinecount < 40 then
                 ntscSignal <= '1';
                 ntscLevel <= '0';
             else
                 ntscSignal <= '1';
                 -- active part of screen
                 ntscPixelcountAdj := ntscPixelcount + (resize(ntscLinecount,12) sll (pwmBits-1)) + (frameCount sll 1);
-                if (ntscPixelcountAdj((6+pwmBits) downto 7) >= ntscPixelcountAdj((pwmBits-1) downto 0)) then
+                if ntscPixelcountAdj((6+pwmBits) downto 7) >= ntscPixelcountAdj((pwmBits-1) downto 0) then
                     ntscLevel <= '1';
                 else
                     ntscLevel <= '0';
@@ -127,14 +126,14 @@ begin
         else
             ntscLevel <= '0';
           -- ntscEq is the equalization pulse
-            if (ntscHPixelcount < usToClock(2.542)) then
+            if ntscHPixelcount < usToClock(2.3) then --  usToClock(2.542)) then
                 ntscEq := '0';
             else
                 ntscEq := '1';
             end if;
 
           -- ntscSe is the serration pulse
-            if (ntscHPixelcount < usToClock(27.305)) then
+            if ntscHPixelcount < usToClock(63.5/2.0-4.7) then -- usToClock(27.305)) then
                 ntscSe := '0';
             else
                 ntscSe := '1';
