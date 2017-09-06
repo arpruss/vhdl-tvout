@@ -56,7 +56,7 @@ begin
     -- ************************************************************************
     process (clock)
     variable ntscEq, ntscSe: std_logic;
-    variable displayLine : unsigned(9 downto 0);
+    variable displayLine : unsigned(8 downto 0);
     variable horizCount : unsigned(halfLineBits downto 0);
     variable horizCountAdj : unsigned(horizCount'length-1 downto 0);
     variable dataRegion : boolean;
@@ -75,8 +75,15 @@ begin
                 horizHCount <= horizHCount + 1;
             end if;
             
+             -- When halfLine is 18 (odd field) or 19 (even field),
+             -- displayLine hits 490; it then increases until it hits 511, and then zero,
+             -- which will be the first display line.
+             -- When halfLine is 520, displayLine is 480, and then goes up to 484 as halfLine
+             -- goes to its max. The long and short of this is that we are within the 480 line
+             -- vertical display area if and only if displayLine < 480 (unsigned comparison).
+
             if field = '1' and 18 <= halfLine then
-                displayLine := resize(halfLine - 40, displayLine'length)(9 downto 1) & '0';
+                displayLine := resize(halfLine - 40, displayLine'length)(8 downto 1) & '0';
                 dataRegion := true;
                 if halfLine(0) = '0' then
                     horizCount := resize(horizHCount, horizCount'length);
@@ -84,7 +91,7 @@ begin
                     horizCount := resize(horizHCount, horizCount'length) + HALF_LINE;
                 end if;
             elsif field = '0' and 19 <= halfLine then
-                displayLine := resize(halfLine - 41, displayLine'length)(9 downto 1) & '1';
+                displayLine := resize(halfLine - 41, displayLine'length)(8 downto 1) & '1';
                 dataRegion := true;
                 if halfLine(0) = '1' then
                     horizCount := resize(horizHCount, horizCount'length);
@@ -98,21 +105,27 @@ begin
             end if;
 
             if dataRegion then
-                if horizCount >= DATA_HORIZ_END-pwmLevels then
+                if horizCount >= DATA_HORIZ_END then
                     sync_output <= '1';
                     bw_output <= '0';
                 elsif horizCount < microsToClock(4.7) then 
                     sync_output <= '0';
                     bw_output <= '0';
-                elsif halfLine < 40 or halfLine >= 40+480 then
+                elsif displayLine >= natural(480) then
                     sync_output <= '1';
                     bw_output <= '0';
                 elsif horizCount = DATA_HORIZ_START-pwmLevels then
                     x <= to_unsigned(0, x'length);
                     y <= resize(displayLine, y'length);
+                    sync_output <= '1';
+                    bw_output <= '0';                
                 elsif horizCount = DATA_HORIZ_START-pwmLevels+pwmLevels/2 then
+                    sync_output <= '1';
+                    bw_output <= '0';                
                     req <= '0';
                 elsif horizCount = DATA_HORIZ_START-pwmLevels+1 then
+                    sync_output <= '1';
+                    bw_output <= '0';                
                     req <= '1';
                 elsif horizCount < DATA_HORIZ_START then
                     sync_output <= '1';
