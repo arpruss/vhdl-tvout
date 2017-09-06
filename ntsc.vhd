@@ -4,38 +4,12 @@ USE ieee.std_logic_unsigned.all;
 use IEEE.numeric_std.all;
 use IEEE.MATH_REAL.ALL;
 
--- resolution: 238x223; pixel size 1:1.25
-
-package ntsclib is
-    function microsToClock(constant us, clockFrequency : real) return natural;
-    function screenWidth(constant clockFrequency : real; constant pwmLevels : natural) return natural;
-        
-end ntsclib;
-
-package body ntsclib is
-    function microsToClock(constant us, clockFrequency : real) return natural is
-    begin
-        return natural(floor(0.5+1.0e-6*us*clockFrequency));
-    end microsToClock;
-    function screenWidth(constant clockFrequency : real; constant pwmLevels : natural) return natural is
-    begin
-        return microsToClock(63.5-1.5,clockFrequency)/pwmLevels*pwmLevels
-            -(microsToClock(6.2+4.7,clockFrequency)+pwmLevels-1)/pwmLevels*pwmLevels;
-    end;
-end ntsclib;   
-
-LIBRARY IEEE;
-USE IEEE.STD_LOGIC_1164.all;
-USE ieee.std_logic_unsigned.all;
-use IEEE.numeric_std.all;
-use IEEE.MATH_REAL.ALL;
-use work.ntsclib.all;
-
 entity ntsc is
     generic
     (
-    clockFrequency : real := 160.0e6;
-    pwmBits : natural := 4
+    clockFrequency : real := 208.33333333e6;
+    pwmBits : natural := 4;
+    screenWidth : natural := 640
     );    
 
     port
@@ -50,7 +24,7 @@ entity ntsc is
     );
     function microsToClock(us : real) return natural is
     begin
-        return work.ntsclib.microsToClock(us,clockFrequency);
+        return natural(floor(0.5+1.0e-6*us*clockFrequency));
     end microsToClock;    
 end ntsc;
 
@@ -63,7 +37,7 @@ architecture behavioral of ntsc is
     signal horizHCount : unsigned(halfLineBits-1 downto 0) := to_unsigned(0,halfLineBits); -- clock count within halfline
     signal field : std_logic := '1';
     
-    constant DATA_LENGTH : natural := 640*pwmLevels;
+    constant DATA_LENGTH : natural := screenWidth*pwmLevels;
     constant DATA_HORIZ_START : natural := (microsToClock((63.6-1.5+6.2+4.7)/2)-DATA_LENGTH/2)/pwmLevels*pwmLevels;
     constant DATA_HORIZ_END : natural := DATA_HORIZ_START + DATA_LENGTH;
     
@@ -74,16 +48,13 @@ begin
     -- ************************************************************************
     --                          NTSC OUT
     -- ************************************************************************
-    --req <= '0';
-
     process (clock)
     variable ntscEq, ntscSe: std_logic;
     variable displayLine : unsigned(9 downto 0);
     variable horizCount : unsigned(halfLineBits downto 0);
     variable horizCountAdj : unsigned(horizCount'length-1 downto 0);
     variable dataRegion : boolean;
-    
-    
+
     begin
         if rising_edge(clock) then
             if horizHCount = HALF_LINE-1 then
@@ -143,7 +114,7 @@ begin
                 else
                     sync_output <= '1';
                     if horizCount(pwmBits-1 downto 0) = 0 then                        
-                        x <= resize(horizCount(horizCount'length-1 downto pwmBits)-(DATA_HORIZ_START / pwmLevels)-1, x'length);
+                        x <= resize(horizCount(horizCount'length-1 downto pwmBits)-(DATA_HORIZ_START / pwmLevels)+1, x'length);
                         y <= resize(displayLine, y'length);
                     elsif horizCount(pwmBits-1 downto 0) = 1 and horizCount < DATA_HORIZ_END - pwmLevels then
                         req <= '1';
