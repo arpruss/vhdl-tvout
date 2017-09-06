@@ -133,7 +133,7 @@ begin
                 elsif horizCount = DATA_HORIZ_START-pwmLevels then
                     x <= to_unsigned(0, x'length);
                     y <= resize(displayLine, y'length);
-                elsif horizCount = DATA_HORIZ_START-pwmLevels/2 then
+                elsif horizCount = DATA_HORIZ_START-pwmLevels+pwmLevels/2 then
                     req <= '0';
                 elsif horizCount = DATA_HORIZ_START-pwmLevels+1 then
                     req <= '1';
@@ -142,10 +142,10 @@ begin
                     bw_output <= '0';                
                 else
                     sync_output <= '1';
-                    if horizCount(pwmBits-1 downto 0) = pwmLevels-1 then                        
-                        x <= resize(horizCount(horizCount'length-1 downto pwmBits)-(DATA_HORIZ_START / pwmLevels), x'length);
+                    if horizCount(pwmBits-1 downto 0) = 0 then                        
+                        x <= resize(horizCount(horizCount'length-1 downto pwmBits)-(DATA_HORIZ_START / pwmLevels)-1, x'length);
                         y <= resize(displayLine, y'length);
-                    elsif horizCount(pwmBits-1 downto 0) = 0 and horizCount < DATA_HORIZ_END - pwmLevels then
+                    elsif horizCount(pwmBits-1 downto 0) = 1 and horizCount < DATA_HORIZ_END - pwmLevels then
                         req <= '1';
                     elsif horizCount(pwmBits-1 downto 0) = pwmLevels/2 then
                         req <= '0';

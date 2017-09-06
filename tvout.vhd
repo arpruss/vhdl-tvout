@@ -15,7 +15,7 @@ end tvout;
 
 architecture behavioral of tvout is
     constant pwmBits : natural := 4;
-    constant clockFrequency : real := 212.5e6; --212500000.0;
+    constant clockFrequency : real := 208.33333333e6;
     signal clock : std_logic; 
     signal req: std_logic;
     signal x : unsigned(9 downto 0);
