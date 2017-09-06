@@ -1,3 +1,9 @@
+-- 
+-- Original code copyright (c) 2003 James Bowman http://excamera.com/sphinx/fpga-ntsc.html
+-- Heavy modifications copyright (c) 2017 Alexander Pruss https://github.com/arpruss/vhdl-tvout
+-- MIT Licensed
+--
+
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.all;
 USE ieee.std_logic_unsigned.all;
