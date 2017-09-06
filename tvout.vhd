@@ -43,10 +43,7 @@ begin
     variable distScaled : unsigned(xs'length+ys'length-11 downto 0);
     begin
         if rising_edge(req) then
-            if button = '0' then
-                posX <= to_signed(screenWidth/2,posX'length);
-                posY <= to_signed(240,posY'length);
-            elsif x = 0 and y = 0 then
+            if x = 0 and y = 0 then
                 if posX >= screenWidth-1 then
                     vX <= to_signed(-1, vX'length);
                 elsif posX <= 0 then
@@ -57,8 +54,13 @@ begin
                 elsif posY <= 0 then
                     vY <= to_signed(1, vY'length);
                 end if;
-                posX <= posX + vX;
-                posY <= posY + vY;
+                if button = '0' then
+                    posX <= posX + vX+vX+vX+vX;
+                    posY <= posY + vY+vY+vY+vY;
+                else
+                    posX <= posX + vX;
+                    posY <= posY + vY;
+                end if;
             end if;
             xs := signed(resize(x,11))-posX;
             ys := signed(resize(y,10))-posY;
