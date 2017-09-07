@@ -44,6 +44,8 @@ begin
     begin
         if rising_edge(req) then
             if x = 0 and y = 0 then
+                --note that (0,0) will be invisible on a typical screen, so if we miss
+                --the timing on it, no harm done
                 if posX >= screenWidth-1 then
                     vX <= to_signed(-1, vX'length);
                 elsif posX <= 0 then
@@ -65,10 +67,15 @@ begin
             xs := signed(resize(x,11))-posX;
             ys := signed(resize(y,10))-posY;
             distScaled := resize(unsigned(xs*xs+ys*ys) srl 11,distScaled'length);
-            if distScaled < 2**pwmBits then
-                pixel <= 2**pwmBits-1-resize(distScaled,pwmBits);
+            if resize(signed(x)-integer(screenWidth/2),10) = resize(signed(y)-integer(240),10) or 
+                resize(signed(x)-integer(screenWidth/2),10) = resize(integer(240)-signed(y),10) then
+                pixel <= to_unsigned(255,pwmBits);
             else
-                pixel <= to_unsigned(0,pwmBits);
+                if distScaled < 2**pwmBits then
+                    pixel <= 2**pwmBits-1-resize(distScaled,pwmBits);
+                else
+                    pixel <= to_unsigned(0,pwmBits);
+                end if;
             end if;
         end if;
     end process;

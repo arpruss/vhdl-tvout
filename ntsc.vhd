@@ -77,7 +77,9 @@ begin
         
             -- for odd field, displayLine = (halfLine-40) rounded down to even
             -- for even field, displayLine = (halfLine-41) rounded up to odd
-            displayLine := resize(halfLine - (to_unsigned(20,halfLine'length-1) & not field), displayLine'length)(8 downto 1) & not field;
+            -- displayLine is 9 bits long, which is calibrated so that it is above 479 when
+            -- halfLine is less than 40 or 41.
+            displayLine := resize(resize(halfLine,9) - (to_unsigned(20,8) & not field), 9)(8 downto 1) & not field;
             if field = '1' and 18 <= halfLine then
                 dataRegion := true;
                 if halfLine(0) = '0' then
