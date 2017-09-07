@@ -74,7 +74,9 @@ begin
             else
                 horizHCount <= horizHCount + 1;
             end if;
-            
+        
+            -- for odd field, displayLine = (halfLine-40) rounded down to even
+            -- for even field, displayLine = (halfLine-41) rounded up to odd
             if field = '1' and 18 <= halfLine then
                 displayLine := resize(halfLine - 40, displayLine'length)(9 downto 1) & '0';
                 dataRegion := true;
