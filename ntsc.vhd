@@ -56,7 +56,6 @@ begin
     process (clock)
     variable ntscEq, ntscSe: std_logic;
     variable displayLine : unsigned(8 downto 0);
-    --variable horizCount : unsigned(lineBits-1 downto 0);
     variable dataRegion : boolean;
 
     begin
@@ -84,17 +83,7 @@ begin
             -- displayLine is 9 bits long, which is calibrated so that it is above 479 when
             -- halfLine is less than 40 or 41.
             displayLine := resize(resize(halfLine,9) - (to_unsigned(20,8) & not field), 9)(8 downto 1) & not field;
-            if field = '1' and 18 <= halfLine then
-                dataRegion := true;
-            elsif field = '0' and 19 <= halfLine then
-                dataRegion := true;
-            else
-                dataRegion := false;
---                displayLine := to_unsigned(0, displayLine'length);
---                horizCount <= to_unsigned(0, horizCount'length);
-            end if;
-
-            if dataRegion then
+            if (field = '1' and 18 <= halfLine) or 19 <= halfLine then
                 if horizCount >= DATA_HORIZ_END then
                     sync_output <= '1';
                     bw_output <= '0';
@@ -109,7 +98,7 @@ begin
                     bw_output <= '0';                
                     if horizCount = DATA_HORIZ_START-pwmLevels then
                         x <= to_unsigned(0, x'length);
-                        y <= resize(displayLine, y'length);
+                        y <= displayLine;
                     elsif horizCount = DATA_HORIZ_START-pwmLevels+pwmLevels/2 then
                         req <= '0';
                     elsif horizCount = DATA_HORIZ_START-pwmLevels+1 then
@@ -119,7 +108,7 @@ begin
                     sync_output <= '1';
                     if horizCount(pwmBits-1 downto 0) = 0 then                        
                         x <= resize(horizCount(horizCount'length-1 downto pwmBits)-(DATA_HORIZ_START / pwmLevels)+1, x'length);
-                        y <= resize(displayLine, y'length);
+                        y <= displayLine;
                     elsif horizCount(pwmBits-1 downto 0) = 1 and horizCount < DATA_HORIZ_END - pwmLevels then
                         req <= '1';
                     elsif horizCount(pwmBits-1 downto 0) = pwmLevels/2 then
