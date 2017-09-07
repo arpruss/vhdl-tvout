@@ -110,22 +110,17 @@ begin
                 elsif displayLine >= 480 then
                     sync_output <= '1';
                     bw_output <= '0';
-                elsif horizCount = DATA_HORIZ_START-pwmLevels then
-                    sync_output <= '1';
-                    bw_output <= '0';                
-                    x <= to_unsigned(0, x'length);
-                    y <= resize(displayLine, y'length);
-                elsif horizCount = DATA_HORIZ_START-pwmLevels+pwmLevels/2 then
-                    sync_output <= '1';
-                    bw_output <= '0';                
-                    req <= '0';
-                elsif horizCount = DATA_HORIZ_START-pwmLevels+1 then
-                    sync_output <= '1';
-                    bw_output <= '0';                
-                    req <= '1';
                 elsif horizCount < DATA_HORIZ_START then
                     sync_output <= '1';
                     bw_output <= '0';                
+                    if horizCount = DATA_HORIZ_START-pwmLevels then
+                        x <= to_unsigned(0, x'length);
+                        y <= resize(displayLine, y'length);
+                    elsif horizCount = DATA_HORIZ_START-pwmLevels+pwmLevels/2 then
+                        req <= '0';
+                    elsif horizCount = DATA_HORIZ_START-pwmLevels+1 then
+                        req <= '1';
+                    end if;
                 else
                     sync_output <= '1';
                     if horizCount(pwmBits-1 downto 0) = 0 then                        
