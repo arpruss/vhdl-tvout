@@ -28,14 +28,14 @@ entity ntsc is
     req   : out std_logic := '0'; -- set to request a pixel
     pixel : in unsigned(pwmBits-1 downto 0)
     );
-    function microsToClock(us : real) return natural is
+    function microsToTicks(us : real) return natural is
     begin
         return natural(floor(0.5+1.0e-6*us*clockFrequency));
-    end microsToClock;    
+    end microsToTicks;    
 end ntsc;
 
 architecture behavioral of ntsc is
-    constant HALF_LINE : natural := microsToClock(63.6/2.0);
+    constant HALF_LINE : natural := microsToTicks(63.6/2.0);
     constant halfLineBits : natural := natural(ceil(log2(real(HALF_LINE))));
 
     constant pwmLevels : natural := 2**pwmBits;
@@ -44,11 +44,11 @@ architecture behavioral of ntsc is
     signal field : std_logic := '1';
     
     constant DATA_LENGTH : natural := screenWidth*pwmLevels;
-    constant DATA_HORIZ_START : natural := (microsToClock((63.6-1.5+6.2+4.7)/2)-DATA_LENGTH/2)/pwmLevels*pwmLevels;
+    constant DATA_HORIZ_START : natural := (microsToTicks((63.6-1.5+6.2+4.7)/2)-DATA_LENGTH/2)/pwmLevels*pwmLevels;
     constant DATA_HORIZ_END : natural := DATA_HORIZ_START + DATA_LENGTH;
     
---    constant DATA_HORIZ_START : natural := (microsToClock(6.2+4.7)+pwmLevels-1)/pwmLevels*pwmLevels + 15*pwmLevels;
---    constant DATA_HORIZ_END : natural := microsToClock(63.6-1.5)/pwmLevels*pwmLevels - 21*pwmLevels;
+--    constant DATA_HORIZ_START : natural := (microsToTicks(6.2+4.7)+pwmLevels-1)/pwmLevels*pwmLevels + 15*pwmLevels;
+--    constant DATA_HORIZ_END : natural := microsToTicks(63.6-1.5)/pwmLevels*pwmLevels - 21*pwmLevels;
     
 begin 
     -- ************************************************************************
@@ -74,7 +74,7 @@ begin
             else
                 horizHCount <= horizHCount + 1;
             end if;
-        
+            
             -- for odd field, displayLine = (halfLine-40) rounded down to even
             -- for even field, displayLine = (halfLine-41) rounded up to odd
             -- displayLine is 9 bits long, which is calibrated so that it is above 479 when
@@ -104,7 +104,7 @@ begin
                 if horizCount >= DATA_HORIZ_END then
                     sync_output <= '1';
                     bw_output <= '0';
-                elsif horizCount < microsToClock(4.7) then 
+                elsif horizCount < microsToTicks(4.7) then 
                     sync_output <= '0';
                     bw_output <= '0';
                 elsif displayLine >= 480 then
@@ -145,14 +145,14 @@ begin
             else
                 bw_output <= '0';
               -- ntscEq is the equalization pulse
-                if horizHCount < microsToClock(2.3) then --  microsToClock(2.542)) then
+                if horizHCount < microsToTicks(2.3) then --  microsToTicks(2.542)) then
                     ntscEq := '0';
                 else
                     ntscEq := '1';
                 end if;
 
               -- ntscSe is the serration pulse
-                if horizHCount < microsToClock(63.5/2.0-4.7) then -- microsToClock(27.305)) then
+                if horizHCount < microsToTicks(63.5/2.0-4.7) then -- microsToTicks(27.305)) then
                     ntscSe := '0';
                 else
                     ntscSe := '1';
