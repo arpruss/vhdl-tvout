@@ -15,7 +15,7 @@ attribute altera_chip_pin_lc : string;
 attribute altera_chip_pin_lc of button : signal is "@144";   
 attribute altera_attribute : string;
 attribute altera_attribute of button : signal is "-name WEAK_PULL_UP_RESISTOR ON";
-end tvout;    
+end tvout;   
 
 architecture behavioral of tvout is
     constant pwmBits : natural := 4;
@@ -37,6 +37,7 @@ begin
                 port map(sync_output=>sync_output, bw_output=>bw_output, clock=>clock, pixel=>pixel, req=>req, x=>x, y=>y);
 
     process(req)
+
     variable xs : signed(10 downto 0);
     variable ys : signed(9 downto 0);
     variable dist2 : signed(xs'length+ys'length downto 0);
