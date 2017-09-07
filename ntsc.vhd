@@ -36,12 +36,13 @@ end ntsc;
 
 architecture behavioral of ntsc is
     constant HALF_LINE : natural := microsToTicks(63.6/2.0);
-    constant FULL_LINE : natural := microsToTicks(63.6);
+    constant FULL_LINE : natural := HALF_LINE*2;
     constant lineBits : natural := natural(ceil(log2(real(FULL_LINE))));
 
     constant pwmLevels : natural := 2**pwmBits;
     signal halfLine : unsigned(9 downto 0) := to_unsigned(0,10);
     signal horizHCount : unsigned(lineBits-1 downto 0) := to_unsigned(0,lineBits); -- clock count within halfline
+    signal horizCount : unsigned(lineBits-1 downto 0) := to_unsigned(0,lineBits); -- clock count within halfline
     signal field : std_logic := '1';
     
     constant DATA_LENGTH : natural := screenWidth*pwmLevels;
@@ -55,7 +56,7 @@ begin
     process (clock)
     variable ntscEq, ntscSe: std_logic;
     variable displayLine : unsigned(8 downto 0);
-    variable horizCount : unsigned(lineBits-1 downto 0);
+    --variable horizCount : unsigned(lineBits-1 downto 0);
     variable dataRegion : boolean;
 
     begin
@@ -72,6 +73,12 @@ begin
                 horizHCount <= horizHCount + 1;
             end if;
             
+            if horizCount = FULL_LINE-1 then
+                horizCount <= to_unsigned(0,horizCount'length);
+            else
+                horizCount <= horizCount + 1;
+            end if;
+            
             -- for odd field, displayLine = (halfLine-40) rounded down to even
             -- for even field, displayLine = (halfLine-41) rounded up to odd
             -- displayLine is 9 bits long, which is calibrated so that it is above 479 when
@@ -79,22 +86,12 @@ begin
             displayLine := resize(resize(halfLine,9) - (to_unsigned(20,8) & not field), 9)(8 downto 1) & not field;
             if field = '1' and 18 <= halfLine then
                 dataRegion := true;
-                if halfLine(0) = '0' then
-                    horizCount := horizHCount;
-                else
-                    horizCount := horizHCount + HALF_LINE;
-                end if;
             elsif field = '0' and 19 <= halfLine then
                 dataRegion := true;
-                if halfLine(0) = '1' then
-                    horizCount := horizHCount;
-                else
-                    horizCount := horizHCount + HALF_LINE;
-                end if;
             else
                 dataRegion := false;
 --                displayLine := to_unsigned(0, displayLine'length);
-                horizCount := to_unsigned(0, horizCount'length);
+--                horizCount <= to_unsigned(0, horizCount'length);
             end if;
 
             if dataRegion then
