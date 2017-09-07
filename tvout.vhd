@@ -2,6 +2,7 @@ LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.all;
 USE ieee.std_logic_unsigned.all;
 use IEEE.numeric_std.all;
+use work.fonts.all;
 
 entity tvout is 
     port
