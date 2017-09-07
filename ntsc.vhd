@@ -36,19 +36,17 @@ end ntsc;
 
 architecture behavioral of ntsc is
     constant HALF_LINE : natural := microsToTicks(63.6/2.0);
-    constant halfLineBits : natural := natural(ceil(log2(real(HALF_LINE))));
+    constant FULL_LINE : natural := microsToTicks(63.6);
+    constant lineBits : natural := natural(ceil(log2(real(FULL_LINE))));
 
     constant pwmLevels : natural := 2**pwmBits;
     signal halfLine : unsigned(9 downto 0) := to_unsigned(0,10);
-    signal horizHCount : unsigned(halfLineBits-1 downto 0) := to_unsigned(0,halfLineBits); -- clock count within halfline
+    signal horizHCount : unsigned(lineBits-1 downto 0) := to_unsigned(0,lineBits); -- clock count within halfline
     signal field : std_logic := '1';
     
     constant DATA_LENGTH : natural := screenWidth*pwmLevels;
     constant DATA_HORIZ_START : natural := (microsToTicks((63.6-1.5+6.2+4.7)/2)-DATA_LENGTH/2)/pwmLevels*pwmLevels;
     constant DATA_HORIZ_END : natural := DATA_HORIZ_START + DATA_LENGTH;
-    
---    constant DATA_HORIZ_START : natural := (microsToTicks(6.2+4.7)+pwmLevels-1)/pwmLevels*pwmLevels + 15*pwmLevels;
---    constant DATA_HORIZ_END : natural := microsToTicks(63.6-1.5)/pwmLevels*pwmLevels - 21*pwmLevels;
     
 begin 
     -- ************************************************************************
@@ -57,8 +55,7 @@ begin
     process (clock)
     variable ntscEq, ntscSe: std_logic;
     variable displayLine : unsigned(8 downto 0);
-    variable horizCount : unsigned(halfLineBits downto 0);
-    variable horizCountAdj : unsigned(horizCount'length-1 downto 0);
+    variable horizCount : unsigned(lineBits-1 downto 0);
     variable dataRegion : boolean;
 
     begin
@@ -83,16 +80,16 @@ begin
             if field = '1' and 18 <= halfLine then
                 dataRegion := true;
                 if halfLine(0) = '0' then
-                    horizCount := resize(horizHCount, horizCount'length);
+                    horizCount := horizHCount;
                 else
-                    horizCount := resize(horizHCount, horizCount'length) + HALF_LINE;
+                    horizCount := horizHCount + HALF_LINE;
                 end if;
             elsif field = '0' and 19 <= halfLine then
                 dataRegion := true;
                 if halfLine(0) = '1' then
-                    horizCount := resize(horizHCount, horizCount'length);
+                    horizCount := horizHCount;
                 else
-                    horizCount := resize(horizHCount, horizCount'length) + HALF_LINE;
+                    horizCount := horizHCount + HALF_LINE;
                 end if;
             else
                 dataRegion := false;
