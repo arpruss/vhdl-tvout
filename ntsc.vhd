@@ -64,6 +64,7 @@ begin
         report "DATA_HORIZ_START " & natural'image(DATA_HORIZ_START); 
         report "DATA_HORIZ_END " & natural'image(DATA_HORIZ_END); 
         assert DATA_HORIZ_END < FULL_LINE;
+        
         if rising_edge(clock) then
             if horizHCount = HALF_LINE-1 then
                 horizHCount <= to_unsigned(0,horizHCount'length);
