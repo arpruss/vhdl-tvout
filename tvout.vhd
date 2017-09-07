@@ -43,7 +43,7 @@ begin
     variable distScaled : unsigned(xs'length+ys'length-11 downto 0);
     begin
         if rising_edge(req) then
-            if x = 0 and y = 0 then
+            if x = 639 and y = 0 then
                 if posX >= screenWidth-1 then
                     vX <= to_signed(-1, vX'length);
                 elsif posX <= 0 then

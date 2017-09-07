@@ -56,7 +56,7 @@ begin
     -- ************************************************************************
     process (clock)
     variable ntscEq, ntscSe: std_logic;
-    variable displayLine : unsigned(9 downto 0);
+    variable displayLine : unsigned(8 downto 0);
     variable horizCount : unsigned(halfLineBits downto 0);
     variable horizCountAdj : unsigned(horizCount'length-1 downto 0);
     variable dataRegion : boolean;
@@ -77,8 +77,8 @@ begin
         
             -- for odd field, displayLine = (halfLine-40) rounded down to even
             -- for even field, displayLine = (halfLine-41) rounded up to odd
+            displayLine := resize(halfLine - (to_unsigned(20,halfLine'length-1) & not field), displayLine'length)(8 downto 1) & not field;
             if field = '1' and 18 <= halfLine then
-                displayLine := resize(halfLine - 40, displayLine'length)(9 downto 1) & '0';
                 dataRegion := true;
                 if halfLine(0) = '0' then
                     horizCount := resize(horizHCount, horizCount'length);
@@ -86,7 +86,6 @@ begin
                     horizCount := resize(horizHCount, horizCount'length) + HALF_LINE;
                 end if;
             elsif field = '0' and 19 <= halfLine then
-                displayLine := resize(halfLine - 41, displayLine'length)(9 downto 1) & '1';
                 dataRegion := true;
                 if halfLine(0) = '1' then
                     horizCount := resize(horizHCount, horizCount'length);
@@ -95,7 +94,7 @@ begin
                 end if;
             else
                 dataRegion := false;
-                displayLine := to_unsigned(0, displayLine'length);
+--                displayLine := to_unsigned(0, displayLine'length);
                 horizCount := to_unsigned(0, horizCount'length);
             end if;
 
@@ -106,15 +105,21 @@ begin
                 elsif horizCount < microsToClock(4.7) then 
                     sync_output <= '0';
                     bw_output <= '0';
-                elsif halfLine < natural(40) or halfLine >= natural(40+480) then
+                elsif displayLine >= 480 then
                     sync_output <= '1';
                     bw_output <= '0';
                 elsif horizCount = DATA_HORIZ_START-pwmLevels then
+                    sync_output <= '1';
+                    bw_output <= '0';                
                     x <= to_unsigned(0, x'length);
                     y <= resize(displayLine, y'length);
                 elsif horizCount = DATA_HORIZ_START-pwmLevels+pwmLevels/2 then
+                    sync_output <= '1';
+                    bw_output <= '0';                
                     req <= '0';
                 elsif horizCount = DATA_HORIZ_START-pwmLevels+1 then
+                    sync_output <= '1';
+                    bw_output <= '0';                
                     req <= '1';
                 elsif horizCount < DATA_HORIZ_START then
                     sync_output <= '1';
