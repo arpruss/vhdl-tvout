@@ -41,8 +41,8 @@ architecture behavioral of ntsc is
 
     constant pwmLevels : natural := 2**pwmBits;
     signal halfLine : unsigned(9 downto 0) := to_unsigned(0,10);
-    signal horizHCount : unsigned(lineBits-1 downto 0) := to_unsigned(0,lineBits); -- clock count within halfline
-    signal horizCount : unsigned(lineBits-1 downto 0) := to_unsigned(0,lineBits); -- clock count within halfline
+    signal horizHCount : unsigned(lineBits-2 downto 0) := to_unsigned(0,lineBits-1); -- clock count within halfline
+    signal horizCount : unsigned(lineBits-1 downto 0) := to_unsigned(0,lineBits); -- clock count within line
     signal field : std_logic := '1';
     
     constant DATA_LENGTH : natural := screenWidth*pwmLevels;
@@ -84,82 +84,66 @@ begin
             -- halfLine is less than 40 or 41.
             displayLine := resize(resize(halfLine,9) - (to_unsigned(20,8) & not field), 9)(8 downto 1) & not field;
             if (field = '1' and 18 <= halfLine) or 19 <= halfLine then
-                if horizCount >= DATA_HORIZ_END then
-                    sync_output <= '1';
-                    bw_output <= '0';
-                elsif horizCount < microsToTicks(4.7) then 
+                if horizCount < microsToTicks(4.7) then 
                     sync_output <= '0';
                     bw_output <= '0';
-                elsif displayLine >= 480 then
-                    sync_output <= '1';
-                    bw_output <= '0';
-                elsif horizCount < DATA_HORIZ_START then
-                    sync_output <= '1';
-                    bw_output <= '0';                
-                    if horizCount = DATA_HORIZ_START-pwmLevels then
-                        x <= to_unsigned(0, x'length);
-                        y <= displayLine;
-                    elsif horizCount = DATA_HORIZ_START-pwmLevels+pwmLevels/2 then
-                        req <= '0';
-                    elsif horizCount = DATA_HORIZ_START-pwmLevels+1 then
-                        req <= '1';
-                    end if;
                 else
                     sync_output <= '1';
-                    if horizCount(pwmBits-1 downto 0) = 0 then                        
-                        x <= resize(horizCount(horizCount'length-1 downto pwmBits)-(DATA_HORIZ_START / pwmLevels)+1, x'length);
-                        y <= displayLine;
-                    elsif horizCount(pwmBits-1 downto 0) = 1 and horizCount < DATA_HORIZ_END - pwmLevels then
-                        req <= '1';
-                    elsif horizCount(pwmBits-1 downto 0) = pwmLevels/2 then
-                        req <= '0';
-                    end if;
-                    if pixel >= horizCount(pwmBits-1 downto 0) then
-                        bw_output <= '1';
-                    else
+                    if horizCount >= DATA_HORIZ_END then
                         bw_output <= '0';
+                    elsif displayLine >= 480 then
+                        bw_output <= '0';
+                    elsif horizCount < DATA_HORIZ_START then
+                        bw_output <= '0';                
+                        if horizCount = DATA_HORIZ_START-pwmLevels then
+                            x <= to_unsigned(0, x'length);
+                            y <= displayLine;
+                        elsif horizCount = DATA_HORIZ_START-pwmLevels+pwmLevels/2 then
+                            req <= '0';
+                        elsif horizCount = DATA_HORIZ_START-pwmLevels+1 then
+                            req <= '1';
+                        end if;
+                    else
+                        if horizCount(pwmBits-1 downto 0) = 0 then                        
+                            x <= resize(horizCount(horizCount'length-1 downto pwmBits)-(DATA_HORIZ_START / pwmLevels)+1, x'length);
+                            y <= displayLine;
+                        elsif horizCount(pwmBits-1 downto 0) = 1 and horizCount < DATA_HORIZ_END - pwmLevels then
+                            req <= '1';
+                        elsif horizCount(pwmBits-1 downto 0) = pwmLevels/2 then
+                            req <= '0';
+                        end if;
+                        if pixel >= horizCount(pwmBits-1 downto 0) then
+                            bw_output <= '1';
+                        else
+                            bw_output <= '0';
+                        end if;
                     end if;
                 end if;
             else
                 bw_output <= '0';
               -- ntscEq is the equalization pulse
-                if horizHCount < microsToTicks(2.3) then --  microsToTicks(2.542)) then
+                if horizHCount < microsToTicks(2.3) then 
                     ntscEq := '0';
                 else
                     ntscEq := '1';
                 end if;
 
               -- ntscSe is the serration pulse
-                if horizHCount < microsToTicks(63.5/2.0-4.7) then -- microsToTicks(27.305)) then
+                if horizHCount < microsToTicks(63.6/2.0-4.7) then 
                     ntscSe := '0';
                 else
                     ntscSe := '1';
                 end if;
 
-                case halfLine(4 downto 1) is
-                when X"0" =>
+                if halfLine(4 downto 1) <= 2 then
                     sync_output <= ntscEq;
-                when X"1" =>
-                    sync_output <= ntscEq;
-                when X"2" =>
-                    sync_output <= ntscEq;
-                when X"3" =>
+                elsif halfLine(4 downto 1) <= 5 then
                     sync_output <= ntscSe;
-                when X"4" =>
-                    sync_output <= ntscSe;
-                when X"5" =>
-                    sync_output <= ntscSe;
-                when X"6" =>
+                elsif halfLine(4 downto 1) <= 9 then 
                     sync_output <= ntscEq;
-                when X"7" =>
-                    sync_output <= ntscEq;
-                when X"8" =>
-                    sync_output <= ntscEq;
-                when X"9" =>
-                    sync_output <= ntscEq;
-                when others =>
+                else
                     sync_output <= '1';
-                end case;
+                end if;
             end if;
         end if;
     end process;
