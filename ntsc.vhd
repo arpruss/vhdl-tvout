@@ -112,6 +112,7 @@ begin
                         elsif horizCount(pwmBits-1 downto 0) = pwmLevels/2 then
                             req <= '0';
                         end if;
+                        
                         if pixel >= horizCount(pwmBits-1 downto 0) then
                             bw_output <= '1';
                         else
