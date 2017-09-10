@@ -2,7 +2,6 @@ LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.all;
 USE ieee.std_logic_unsigned.all;
 use IEEE.numeric_std.all;
-use work.fonts.all;
 
 entity tvout is 
     port
@@ -70,8 +69,9 @@ begin
                 xs := signed(resize(x,11))-posX;
                 ys := signed(resize(y,10))-posY;
                 distScaled := resize(unsigned(xs*xs+ys*ys) srl 11,distScaled'length);
-                if resize(signed(x)-integer(screenWidth/2),10) = resize(signed(y)-integer(240),10) or 
-                    resize(signed(x)-integer(screenWidth/2),10) = resize(integer(240)-signed(y),10) then
+                if button = '0' and (
+                    resize(signed(x)-integer(screenWidth/2),10) = resize(signed(y)-integer(240),10) or 
+                    resize(signed(x)-integer(screenWidth/2),10) = resize(integer(240)-signed(y),10) ) then
                     pixel <= to_unsigned(255,pwmBits);
                 else
                     if distScaled < 2**pwmBits then
