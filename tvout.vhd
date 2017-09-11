@@ -2,6 +2,8 @@ LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.all;
 USE ieee.std_logic_unsigned.all;
 use IEEE.numeric_std.all;
+--library work;
+--use work.fonts.all;
 
 entity tvout is 
     port
@@ -30,6 +32,9 @@ architecture behavioral of tvout is
     signal vX : signed(1 downto 0) := to_signed(1,2);
     signal posY : signed(9 downto 0) := to_signed(240,10);
     signal vY : signed(1 downto 0) := to_signed(1,2);
+    signal ch : integer range 0 to 127;
+    
+
 begin
     PLL_INSTANCE: entity work.pll port map(main_clock, clock);
     output: entity work.ntsc 
@@ -65,7 +70,14 @@ begin
                     posX <= posX + vX;
                     posY <= posY + vY;
                 end if;
-            else    
+--            elsif 200 <= x and x < 216 and 200 <= y and y < 216 then
+--                if getFontBit(66, resize(x-to_unsigned(200,x'length),4), 
+--                                                 resize(y-to_unsigned(200,y'length),4))='1' then
+--                    pixel <= to_unsigned(255, pixel'length);
+--                else
+--                    pixel <= to_unsigned(0, pixel'length);
+--                end if;
+            else
                 xs := signed(resize(x,11))-posX;
                 ys := signed(resize(y,10))-posY;
                 distScaled := resize(unsigned(xs*xs+ys*ys) srl 11,distScaled'length);

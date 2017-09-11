@@ -4,7 +4,7 @@
 main() {
    int i;
    puts("package fonts is\n"
-        " type fontdata is array(127 downto 32) of bit_vector(63 downto 0);\n"
+        " type fontdata is array(32 to 127) of bit_vector(63 downto 0);\n"
         " constant font8x8 : fontdata := ("
         );
    for (i=32; i<128; i++) {

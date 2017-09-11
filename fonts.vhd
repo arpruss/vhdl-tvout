@@ -1,5 +1,15 @@
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.all;
+USE ieee.std_logic_unsigned.all;
+use IEEE.numeric_std.all;
+
 package fonts is
- type fontdata is array(127 downto 32) of bit_vector(63 downto 0);
+    function getFontBit(
+        c: in integer range 0 to 127;
+        x: in unsigned(3 downto 0);
+        y: in unsigned(3 downto 0)
+        ) return bit;
+    type fontdata is array(32 to 127) of bit_vector(63 downto 0);
  constant font8x8 : fontdata := (
     x"0000000000000000",
     x"00180018183c3c18",
@@ -99,3 +109,19 @@ package fonts is
     x"0000000000000000" 
 );
 end fonts;
+
+package body fonts is 
+function getFontBit(
+    c: in integer range 0 to 127;
+    x: in unsigned(3 downto 0);
+    y: in unsigned(3 downto 0)
+    ) return bit is
+    begin
+    
+    if c < font8x8'low then
+        return '0';
+    else
+        return font8x8(c)(to_integer(y(3 downto 1)&x(3 downto 1)));
+    end if;
+end getFontBit;
+end package body fonts;
