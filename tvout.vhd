@@ -15,6 +15,8 @@ entity tvout is
     );
 attribute altera_chip_pin_lc : string;
 attribute altera_chip_pin_lc of button : signal is "@144";   
+attribute altera_chip_pin_lc of bw_output : signal is "@96";   
+attribute altera_chip_pin_lc of sync_output : signal is "@119";   
 attribute altera_attribute : string;
 attribute altera_attribute of button : signal is "-name WEAK_PULL_UP_RESISTOR ON";
 end tvout;   
@@ -39,7 +41,8 @@ begin
     PLL_INSTANCE: entity work.pll port map(main_clock, clock);
     output: entity work.ntsc 
                 generic map(clockFrequency => clockFrequency, pwmBits=>pwmBits, screenWidth=>screenWidth) 
-                port map(sync_output=>sync_output, bw_output=>bw_output, clock=>clock, pixel=>pixel, req=>req, x=>x, y=>y);
+                port map(sync_output=>sync_output, bw_output=>bw_output, clock=>clock, pixel=>pixel, 
+                    req=>req, x=>x, y=>y, new_field=>open);
 
     process(req)
 

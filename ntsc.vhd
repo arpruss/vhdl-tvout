@@ -22,6 +22,7 @@ entity ntsc is
     (
     sync_output : out std_logic;
     bw_output : out std_logic;
+    new_frame : out std_logic; -- a pulse when the vertical blanking interval of a new frame is starting
     clock: in std_logic;
     x : out unsigned(9 downto 0);
     y : out unsigned(8 downto 0);
@@ -66,6 +67,12 @@ begin
         assert DATA_HORIZ_END < FULL_LINE;
         
         if rising_edge(clock) then
+            if horizHCount = 0 and halfLine = 0 and field:
+                new_frame <= '1';
+            else
+                new_frame <= '0';
+            end if;
+                
             if horizHCount = HALF_LINE-1 then
                 horizHCount <= to_unsigned(0,horizHCount'length);
                 if halfLine = 524 then
