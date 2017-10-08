@@ -42,7 +42,7 @@ begin
     output: entity work.ntsc 
                 generic map(clockFrequency => clockFrequency, pwmBits=>pwmBits, screenWidth=>screenWidth) 
                 port map(sync_output=>sync_output, bw_output=>bw_output, clock=>clock, pixel=>pixel, 
-                    req=>req, x=>x, y=>y, new_field=>open);
+                    req=>req, x=>x, y=>y, new_frame=>open);
 
     process(req)
 

@@ -67,7 +67,7 @@ begin
         assert DATA_HORIZ_END < FULL_LINE;
         
         if rising_edge(clock) then
-            if horizHCount = 0 and halfLine = 0 and field:
+            if horizHCount = 0 and halfLine = 0 and field = '1' then
                 new_frame <= '1';
             else
                 new_frame <= '0';
