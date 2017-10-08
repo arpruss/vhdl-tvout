@@ -67,22 +67,23 @@ begin
         assert DATA_HORIZ_END < FULL_LINE;
         
         if rising_edge(clock) then
-            if horizHCount = 0 and halfLine = 0 and field = '1' then
-                new_frame <= '1';
-            else
-                new_frame <= '0';
-            end if;
-                
             if horizHCount = HALF_LINE-1 then
                 horizHCount <= to_unsigned(0,horizHCount'length);
                 if halfLine = 524 then
                     field <= not field; 
                     halfLine <= to_unsigned(0,halfLine'length);
+                    if field = '0' then
+                        new_frame <= '1';
+                    else
+                        new_frame <= '0';
+                    end if;
                 else
                     halfLine <= halfLine + 1;
+                    new_frame <= '0';
                 end if;
             else
                 horizHCount <= horizHCount + 1;
+                new_frame <= '0';
             end if;
             
             if horizCount = FULL_LINE-1 then
